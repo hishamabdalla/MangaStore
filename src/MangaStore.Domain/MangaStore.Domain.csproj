@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MangaStore.Domain</RootNamespace>
+    <AssemblyName>MangaStore.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MangaStore.Infrastructure" />
+    <InternalsVisibleTo Include="MangaStore.UnitTests" />
+    <InternalsVisibleTo Include="MangaStore.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,61 @@
+## .NET
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+build/
+bld/
+artifacts/
+publish/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.pidb
+*.svclog
+*.scc
+
+## VS / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.swp
+*.DS_Store
+
+## Build results
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!packages/build/
+
+## App logs (rolling log files written at runtime must not be committed)
+**/logs/
+logs/
+
+## EF Core
+# (Migrations are committed; runtime artefacts are not)
+
+## App secrets
+appsettings.*.Local.json
+secrets.json
+*.pfx
+*.key
+
+## OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini

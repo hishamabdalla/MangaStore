@@ -1,0 +1,22 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CA1707: underscores in test method names (xUnit convention) | CA1812: internal class never instantiated (interceptors, handlers)
+         CA2007: ConfigureAwait — not needed in ASP.NET Core (no sync context) | CA2225: no alternate for implicit ops (Result<T> fluent API)
+         CA1000: static on generic type (PaginatedList.Create factory) | IDE0032: use auto-property (intentional backing field on BaseEntity)
+         CA1724: type name conflicts with namespace (DependencyInjection extension class convention)
+         CA1515: make app types internal — controllers and middleware must be public for the framework
+         CA1031: catch general exception — exception handler and dispatcher are intentionally broad
+         CA1305: locale-specific format — Serilog/EF internals, not caller-controlled -->
+    <NoWarn>$(NoWarn);CA1707;CA1812;CA2007;CA2225;CA1000;IDE0032;CA1724;CA1515;CA1031;CA1305</NoWarn>
+  </PropertyGroup>
+
+</Project>

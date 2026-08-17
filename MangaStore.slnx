@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MangaStore.Domain/MangaStore.Domain.csproj" />
+    <Project Path="src/MangaStore.Application/MangaStore.Application.csproj" />
+    <Project Path="src/MangaStore.Infrastructure/MangaStore.Infrastructure.csproj" />
+    <Project Path="src/MangaStore.API/MangaStore.API.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MangaStore.UnitTests/MangaStore.UnitTests.csproj" />
+    <Project Path="tests/MangaStore.IntegrationTests/MangaStore.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
