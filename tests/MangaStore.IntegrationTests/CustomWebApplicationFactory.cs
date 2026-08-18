@@ -48,7 +48,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:Provider"] = "Sqlite",
+                // No Database:Provider — the app only knows SQL Server, and ConfigureServices
+                // below replaces its DbContext registration wholesale with the SQLite one.
                 ["Jwt:Secret"] = "test-only-secret-at-least-32-characters!",
                 ["Jwt:Issuer"] = "TestIssuer",
                 ["Jwt:Audience"] = "TestAudience",
@@ -58,10 +59,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Identity:SeedAdmin:Email"] = AdminEmail,
                 ["Identity:SeedAdmin:Password"] = AdminPassword,
                 ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
-
-                // High enough that a test class's requests never trip the auth limiter.
-                ["RateLimit:AuthPermitLimit"] = "1000",
-                ["RateLimit:PermitLimit"] = "1000",
             });
         });
 

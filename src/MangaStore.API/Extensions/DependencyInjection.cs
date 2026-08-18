@@ -2,11 +2,9 @@ namespace MangaStore.API.Extensions;
 
 using System.Reflection;
 using System.Text;
-using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -123,44 +121,24 @@ public static class DependencyInjection
             options.AddDefaultPolicy(policy =>
             {
                 string[] origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-                policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+
+                // A single "*" opens the API to every origin. Safe only because this API never
+                // authenticates with cookies — AllowAnyOrigin and AllowCredentials are mutually
+                // exclusive, and adding credentials later would silently break every request.
+                if (origins.Contains(CorsOptions.AnyOrigin))
+                {
+                    policy.AllowAnyOrigin();
+                }
+                else
+                {
+                    policy.WithOrigins(origins);
+                }
+
+                policy.AllowAnyHeader().AllowAnyMethod();
             });
-        });
-
-        services.AddOptions<RateLimitOptions>()
-            .BindConfiguration("RateLimit")
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        services.AddRateLimiter(options =>
-        {
-            var rateLimitOptions = configuration.GetSection("RateLimit").Get<RateLimitOptions>() ?? new RateLimitOptions();
-
-            options.AddFixedWindowLimiter(RateLimitOptions.DefaultPolicy, limiterOptions =>
-            {
-                limiterOptions.Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds);
-                limiterOptions.PermitLimit = rateLimitOptions.PermitLimit;
-                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                limiterOptions.QueueLimit = 0;
-            });
-
-            // Partitioned by client IP so one attacker cannot exhaust the window for everyone else.
-            options.AddPolicy(RateLimitOptions.AuthPolicy, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds),
-                        PermitLimit = rateLimitOptions.AuthPermitLimit,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0,
-                    }));
-
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
 
         services.AddResponseCompression();
-        services.AddOutputCache();
 
         return services;
     }
