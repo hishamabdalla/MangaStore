@@ -1,6 +1,8 @@
-using MangaStore.API.Extensions;
+﻿using MangaStore.API.Extensions;
 using MangaStore.Application;
 using MangaStore.Infrastructure;
+using MangaStore.Infrastructure.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -38,22 +40,17 @@ try
 
     app.UseCors();
 
-    app.UseRateLimiter();
-
     app.UseResponseCompression();
 
     app.UseAuthentication();
     app.UseAuthorization();
 
-    if (app.Environment.IsDevelopment())
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(options =>
-        {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "MangaStore API v1");
-            options.RoutePrefix = "swagger";
-        });
-    }
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MangaStore API v1");
+        options.RoutePrefix = "swagger";
+    });
 
     app.MapScalarApiReference(options =>
     {
@@ -65,7 +62,15 @@ try
 
     app.MapControllers();
 
-    app.MapHealthChecks("/health");
+    // Liveness answers "is this process alive?" and must never fail because a dependency is down —
+    // otherwise the orchestrator restart-loops a healthy instance and deepens the outage.
+    app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+
+    // Readiness answers "should this instance receive traffic?" and does consult dependencies.
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains(HealthCheckTags.Ready),
+    });
 
     await app.RunAsync();
 }

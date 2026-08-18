@@ -17,16 +17,21 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <!-- Test-only: the integration suite runs on SQLite in-memory. The app itself is SQL Server only. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.5" />
 
     <!-- Transitive override: EF Core Sqlite 10.0.5 pulls SQLitePCLRaw 2.1.11, which carries
          the high-severity advisory GHSA-2m69-gcr7-jv3q. Referenced explicitly in
-         MangaStore.Infrastructure to force the patched build. Remove once EF Core ships a
+         MangaStore.IntegrationTests to force the patched build. Remove once EF Core ships a
          version that resolves 2.1.13 or later on its own. -->
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+
+    <!-- Outbound HTTP resilience: Polly v8 wrapped by Microsoft. Preferred over raw Polly or the
+         legacy Microsoft.Extensions.Http.Polly, which is deprecated. -->
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
 
     <!-- DI scanning -->
     <PackageVersion Include="Scrutor" Version="5.0.0" />
