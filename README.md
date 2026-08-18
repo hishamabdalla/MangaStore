@@ -4,6 +4,15 @@ A production-ready **.NET 10 Web API** template built with **Clean Architecture*
 
 ---
 
+## Roadmap
+
+The digital gift-card store is being built on this template in 14 documented phases.
+Start with **[`docs/phases/00-overview-and-decisions.md`](docs/phases/00-overview-and-decisions.md)** — it decodes the
+existing spreadsheet workflow, lists what it gets wrong, and carries the register of open
+business decisions.
+
+---
+
 ## Tech Stack
 
 | Concern | Library |
