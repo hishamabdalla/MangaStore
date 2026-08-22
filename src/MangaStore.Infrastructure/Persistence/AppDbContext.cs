@@ -23,6 +23,21 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Applicatio
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Money is <c>decimal(18,2)</c> everywhere by convention rather than per-property, so a new
+    /// price column cannot silently inherit the provider's default precision and truncate.
+    /// </remarks>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(configurationBuilder);
+
+        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+        configurationBuilder.Properties<DateOnly>().HaveColumnType("date");
+
+        base.ConfigureConventions(configurationBuilder);
+    }
+
+    /// <inheritdoc/>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -8,7 +8,8 @@ public abstract class BaseEntity : IAuditableEntity
     private readonly List<IDomainEvent> _domainEvents = [];
 
     /// <summary>Gets the entity's unique identifier.</summary>
-    public Guid Id { get; protected set; } = Guid.NewGuid();
+    /// <remarks>Version 7, so ids sort by creation time in logs and diagnostics.</remarks>
+    public Guid Id { get; protected set; } = Guid.CreateVersion7();
 
     /// <inheritdoc/>
     public DateTime CreatedAt { get; set; }
