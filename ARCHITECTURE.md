@@ -116,6 +116,18 @@ The generic contract every repository must implement:
 
 > `Update()` was intentionally removed. If you load an entity via `GetByIdAsync`, EF Core tracks it. Mutating it and calling `SaveChanges` is enough — no `Update()` needed.
 
+**When `IRepository<T>` isn't enough — add a method, not a framework.**
+
+The catalogue query filters on search text, category, price range, product kind, stock and sale state, then sorts five ways and pages. `IRepository<T>` cannot express that, and it should not try. The decision taken is a **bespoke method on the feature repository**:
+
+```csharp
+Task<PaginatedList<Product>> SearchAsync(ProductQuery query, string languageCode, CancellationToken ct = default);
+```
+
+- **No specification pattern.** It moves query construction into Application as data, which then needs its own combinators, its own tests, and its own escape hatch the first time a query needs `AsSplitQuery` or a translation join. The cost lands before the benefit does.
+- **A repository never returns `IQueryable<T>`.** That leaks EF into Application, makes the boundary decorative, and defers query failures to enumeration time — inside a service that is supposed to return `Result<T>` rather than throw.
+- One method per real query shape. If two features need the same shape, they share the method; if they need different shapes, they get different methods.
+
 #### `Interfaces/IUnitOfWork`
 Single method: `SaveChangesAsync()`. Wraps EF Core's `SaveChangesAsync`, collects + dispatches domain events after the commit.
 
@@ -267,6 +279,11 @@ The EF Core `DbContext`. Key behaviors:
 - Default tracking: `NoTrackingWithIdentityResolution` — reads don't track by default (performance)
 - `GetByIdAsync` explicitly uses `AsTracking()` — entities loaded for mutation ARE tracked
 - `OnModelCreating` loads all `IEntityTypeConfiguration<T>` from the assembly automatically
+- `ConfigureConventions` sets `decimal` to `(18,2)` and `DateOnly` to the `date` column type, so a new money column cannot silently inherit the provider's default precision and truncate
+
+> **The no-tracking trap.** Tracking is off globally. A query whose result you intend to mutate and save **must** call `.AsTracking()`, or `SaveChangesAsync` will report success and write nothing. This fails silently — no exception, no log, just a persisted value that never changed.
+>
+> For a contended counter (stock, usage limits) prefer a guarded `ExecuteUpdateAsync` over load-mutate-save entirely. Note it executes **immediately** rather than at `SaveChangesAsync`, so inside a transaction it must be sequenced deliberately, and it bypasses the interceptors — meaning `UpdatedAt` has to be set in the `SetProperty` chain by hand.
 
 #### `Persistence/Configurations/XxxConfiguration.cs`
 All entity mapping is done here via Fluent API. **No data annotations on entities.**
@@ -368,6 +385,7 @@ Strongly-typed configuration classes with `ValidateOnStart()` — the app **fail
 | `JwtOptions` | `Jwt` | `Issuer`, `Audience`, `Secret` (min 32 chars) |
 | `CorsOptions` | `Cors` | `AllowedOrigins` (min 1) |
 | `RateLimitOptions` | `RateLimit` | none (has defaults) |
+| `AppOptions` | `App` | `FrontendBaseUrl` |
 
 #### `Program.cs` — Middleware Pipeline Order
 
