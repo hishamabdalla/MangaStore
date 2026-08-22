@@ -40,6 +40,8 @@ try
 
     app.UseCors();
 
+    app.UseRateLimiter();
+
     app.UseResponseCompression();
 
     app.UseAuthentication();

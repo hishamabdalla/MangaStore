@@ -1,16 +1,19 @@
 namespace MangaStore.API.Controllers;
 
 using MangaStore.API.Controllers.Base;
+using MangaStore.API.Options;
 using MangaStore.Application.Features.Auth;
 using MangaStore.Application.Features.Auth.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 /// <summary>Manages sign-up, sign-in, sessions, and password recovery.</summary>
 /// <remarks>
 /// <c>[AllowAnonymous]</c> is applied per action rather than to the controller: at controller level
 /// it would override the <c>[Authorize]</c> on logout-all and change-password, leaving them open.
 /// </remarks>
+[EnableRateLimiting(RateLimitOptions.AuthPolicy)]
 public sealed class AuthController : ApiControllerBase
 {
     /// <summary>Location returned with a 201: the session body is not addressable, but the account it created is.</summary>

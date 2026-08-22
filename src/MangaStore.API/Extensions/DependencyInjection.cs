@@ -2,15 +2,21 @@ namespace MangaStore.API.Extensions;
 
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MangaStore.API.Infrastructure;
+using MangaStore.API.Infrastructure.Json;
 using MangaStore.API.Options;
 using MangaStore.Application.Common.Identity;
+using MangaStore.Application.Common.Localization;
 using MangaStore.Application.Common.Options;
 
 /// <summary>Registers all API-layer services into the DI container.</summary>
@@ -22,7 +28,12 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddControllers(options => options.SuppressAsyncSuffixInActionNames = false)
-            .ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true);
+            .ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true)
+            .AddJsonOptions(options => AddWireConverters(options.JsonSerializerOptions));
+
+        // AddJsonOptions above configures MVC's options only. ProblemDetails is written by
+        // IProblemDetailsService, which serialises through Http.Json's separate options object.
+        services.ConfigureHttpJsonOptions(options => AddWireConverters(options.SerializerOptions));
 
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails(options =>
@@ -80,6 +91,7 @@ public static class DependencyInjection
         // JwtOptions is bound by AddInfrastructure, which also issues the tokens validated here.
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IRequestLanguage, RequestLanguage>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer();
@@ -138,8 +150,54 @@ public static class DependencyInjection
             });
         });
 
+        services.AddOptions<RateLimitOptions>()
+            .BindConfiguration("RateLimit")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddRateLimiter(options =>
+        {
+            var rateLimitOptions = configuration.GetSection("RateLimit").Get<RateLimitOptions>() ?? new RateLimitOptions();
+
+            options.AddFixedWindowLimiter(RateLimitOptions.DefaultPolicy, limiterOptions =>
+            {
+                limiterOptions.Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds);
+                limiterOptions.PermitLimit = rateLimitOptions.PermitLimit;
+                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                limiterOptions.QueueLimit = 0;
+            });
+
+            // Partitioned by client IP so one attacker cannot exhaust the window for everyone else.
+            options.AddPolicy(RateLimitOptions.AuthPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds),
+                        PermitLimit = rateLimitOptions.AuthPermitLimit,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0,
+                    }));
+
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
+
         services.AddResponseCompression();
 
         return services;
+    }
+
+    /// <summary>Applies the wire-format conventions the storefront depends on.</summary>
+    /// <param name="options">The serializer options to configure.</param>
+    /// <remarks>
+    /// Shared by MVC and Http.Json so the two cannot drift. Enums travel as camelCase strings —
+    /// an integer renders as <c>stock.0</c> in the client's translation lookup — and timestamps
+    /// carry a <c>Z</c> so the browser stops reading them as local time.
+    /// </remarks>
+    private static void AddWireConverters(JsonSerializerOptions options)
+    {
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new UtcDateTimeConverter());
+        options.Converters.Add(new NullableUtcDateTimeConverter());
     }
 }

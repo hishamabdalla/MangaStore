@@ -21,7 +21,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 /// host starts, because start-up seeds roles and would otherwise query tables that do not exist yet.
 /// One database is shared by every test in a class, so tests must use distinct email addresses.
 /// </remarks>
-public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     /// <summary>Email address of the administrator seeded at start-up.</summary>
     public const string AdminEmail = "admin@mangastore.test";
@@ -46,7 +46,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            var settings = new Dictionary<string, string?>
             {
                 // No Database:Provider — the app only knows SQL Server, and ConfigureServices
                 // below replaces its DbContext registration wholesale with the SQLite one.
@@ -59,7 +59,15 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Identity:SeedAdmin:Email"] = AdminEmail,
                 ["Identity:SeedAdmin:Password"] = AdminPassword,
                 ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
-            });
+
+                // TestServer leaves RemoteIpAddress null, so every request in a class shares the
+                // one "unknown" partition. High enough that a class's own traffic never trips it.
+                ["RateLimit:AuthPermitLimit"] = "1000",
+                ["RateLimit:PermitLimit"] = "1000",
+            };
+
+            ConfigureAdditionalSettings(settings);
+            config.AddInMemoryCollection(settings);
         });
 
         builder.ConfigureServices(services =>
@@ -88,6 +96,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // Makes the role-guarded test endpoint discoverable by MVC.
         builder.ConfigureTestServices(services =>
             services.AddControllers().AddApplicationPart(typeof(AdminOnlyController).Assembly));
+    }
+
+    /// <summary>Lets a derived factory override configuration for a single test class.</summary>
+    /// <param name="settings">The in-memory configuration the host will be built with.</param>
+    /// <remarks>
+    /// A test class needing different settings must derive rather than call
+    /// <c>WithWebHostBuilder</c>, which re-enters <see cref="ConfigureWebHost"/> and would open the
+    /// shared connection and recreate the schema a second time on the same instance.
+    /// </remarks>
+    protected virtual void ConfigureAdditionalSettings(IDictionary<string, string?> settings)
+    {
     }
 
     /// <summary>Creates the schema on the shared connection before the host — and its role seeding — starts.</summary>
