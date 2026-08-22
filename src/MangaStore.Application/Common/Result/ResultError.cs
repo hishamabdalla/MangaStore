@@ -47,6 +47,20 @@ public sealed record ResultError(string Code, string Title, string Message)
     public static ResultError Validation(string message) =>
         new(ResultErrorCodes.Validation, ResultErrorCodes.Validation, message);
 
+    /// <summary>Creates a 422-mapped error qualified by the entity it concerns.</summary>
+    /// <param name="entity">Entity or resource name used to qualify the title (e.g. <c>"Coupon"</c>).</param>
+    /// <param name="message">Human-readable description of the validation failure.</param>
+    public static ResultError Validation(string entity, string message) =>
+        new(ResultErrorCodes.Validation, $"{entity}.{ResultErrorCodes.Validation}", message);
+
+    /// <summary>Creates a 422-mapped error whose title names the specific rule that rejected the request.</summary>
+    /// <param name="entity">Entity or resource name used to qualify the title (e.g. <c>"Coupon"</c>).</param>
+    /// <param name="reason">The rule that failed, forming the second half of the title (e.g. <c>"Expired"</c>).</param>
+    /// <param name="message">Human-readable description of the validation failure.</param>
+    /// <remarks>The storefront switches on the resulting title, so <c>Coupon.Expired</c> is a contract, not a label.</remarks>
+    public static ResultError Validation(string entity, string reason, string message) =>
+        new(ResultErrorCodes.Validation, $"{entity}.{reason}", message);
+
     /// <summary>Creates a generic 400-mapped error.</summary>
     /// <param name="entity">Entity or resource name used to qualify the title.</param>
     /// <param name="message">Human-readable description of the error.</param>
