@@ -52,8 +52,58 @@ logs/
 ## App secrets
 appsettings.*.Local.json
 secrets.json
+.env
+.env.*
+!.env.example
+
+## Certificates & key material
 *.pfx
 *.key
+*.pem
+*.p12
+*.jks
+*.crt
+
+## External service credentials
+# Google Sheets service account (Phase 06) — grants read access to the FX sheet
+service-account*.json
+google-credentials*.json
+gcp-*.json
+# Kashier merchant keys (Phase 10) and the inventory key-encryption key (Phase 05)
+kashier*.local.json
+keyencryption*.json
+
+## Digital key inventory — NEVER COMMIT
+# CSV imports and exports contain live, sellable gift-card codes in plaintext.
+# A committed file stays in git history forever, even after deletion.
+**/key-import*.csv
+**/keys/*.csv
+*-keys.csv
+*.keys.csv
+inventory-export*.csv
+
+## Test artefacts
+TestResults/
+[Tt]est[Rr]esult*/
+coverage*.xml
+coverage*.json
+*.coverage
+*.coveragexml
+.coverlet/
+BenchmarkDotNet.Artifacts/
+*.received.*
+
+## Build logs
+*.binlog
+msbuild*.log
+MSBuild_*.failure.txt
+
+## Merge / patch artefacts
+*.orig
+*.rej
+
+## Claude Code
+.claude/settings.local.json
 
 ## OS
 Thumbs.db
@@ -62,3 +112,6 @@ Desktop.ini
 
 ## Backend phase docs (local planning notes)
 docs/backend-phases/
+
+## Docs
+docs/

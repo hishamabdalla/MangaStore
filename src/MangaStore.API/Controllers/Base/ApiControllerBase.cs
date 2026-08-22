@@ -35,6 +35,15 @@ public abstract class ApiControllerBase : ControllerBase
     protected IActionResult HandleDelete(Result result) =>
         result.IsSuccess ? NoContent() : MapErrorToResponse(result.Error);
 
+    /// <summary>Returns 200 OK with no body on success, or a 4xx problem response on failure.</summary>
+    /// <param name="result">The result returned by the service.</param>
+    /// <remarks>
+    /// Exists for payment-provider callbacks, which must be acknowledged with a literal 200. Some
+    /// providers treat any other status — 204 included — as a delivery failure and retry the webhook.
+    /// </remarks>
+    protected IActionResult HandleOk(Result result) =>
+        result.IsSuccess ? Ok() : MapErrorToResponse(result.Error);
+
     private ObjectResult MapErrorToResponse(ResultError error) => error.Code switch
     {
         ResultErrorCodes.NotFound => NotFound(CreateProblem(404, error.Title, error.Message)),

@@ -27,5 +27,10 @@ jobs:
       - name: Build (warnings as errors)
         run: dotnet build --no-restore -p:TreatWarningsAsErrors=true
 
+      # Model/migration drift on a schema holding money and sellable inventory is the kind of bug
+      # that surfaces in production at the worst possible moment.
+      - name: Check for model/migration drift
+        run: dotnet ef migrations has-pending-model-changes --project src/MangaStore.Infrastructure --startup-project src/MangaStore.API
+
       - name: Test
         run: dotnet test --no-build --verbosity normal

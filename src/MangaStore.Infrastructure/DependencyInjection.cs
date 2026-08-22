@@ -4,6 +4,7 @@ using System.Reflection;
 using MangaStore.Application.Common.Events;
 using MangaStore.Application.Common.Options;
 using MangaStore.Domain.Interfaces;
+using MangaStore.Infrastructure.HealthChecks;
 using MangaStore.Infrastructure.Identity;
 using MangaStore.Infrastructure.Persistence;
 using MangaStore.Infrastructure.Persistence.Interceptors;
@@ -19,8 +20,8 @@ public static class DependencyInjection
 {
     /// <summary>Adds EF Core, interceptors, repositories, the unit of work, and the domain event dispatcher.</summary>
     /// <remarks>
-    /// Set <c>Database:Provider</c> to <c>Sqlite</c> in configuration to use SQLite (e.g. for integration tests).
-    /// Defaults to SQL Server. Any other value throws at startup.
+    /// SQL Server is the only supported provider. <c>Database:Provider</c> may be omitted or set to
+    /// <c>SqlServer</c>; any other value throws at startup.
     /// </remarks>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
@@ -51,7 +52,7 @@ public static class DependencyInjection
             .WithScopedLifetime());
 
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>();
+            .AddDbContextCheck<AppDbContext>(tags: [HealthCheckTags.Ready]);
 
         return services;
     }
@@ -110,17 +111,13 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
-            if (string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase))
-            {
-                options.UseSqlite(configuration.GetConnectionString("DefaultConnection") ?? "DataSource=:memory:");
-            }
-            else if (string.IsNullOrEmpty(provider) || string.Equals(provider, "SqlServer", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(provider) || string.Equals(provider, "SqlServer", StringComparison.OrdinalIgnoreCase))
             {
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             }
             else
             {
-                throw new InvalidOperationException($"Unsupported database provider '{provider}'. Supported values: SqlServer, Sqlite.");
+                throw new InvalidOperationException($"Unsupported database provider '{provider}'. The only supported value is SqlServer.");
             }
 
             options.AddInterceptors(
